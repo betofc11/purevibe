@@ -1,0 +1,17 @@
+{
+  "name": "PureVibe",
+  "short_name": "PureVibe",
+  "description": "Tu Estilo de Vida Inteligente",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#a68cff",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
