@@ -119,53 +119,72 @@ export const Stats: React.FC = () => {
             <div>
               <span className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">Peso Actual</span>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="font-headline font-black text-4xl">{formatNum(metricsHistory[metricsHistory.length - 1]?.weight)}</span>
+                <span className="font-headline font-black text-4xl">{metricsHistory.length > 0 ? formatNum(metricsHistory[metricsHistory.length - 1]?.weight) : '--'}</span>
                 <span className="text-primary font-bold">KG</span>
               </div>
             </div>
-            <MiniChart data={metricsChartData} dataKey="weight" color="#a68cff" gradientId="colorWeightMini" />
+            {metricsHistory.length > 1 ? (
+              <MiniChart data={metricsChartData} dataKey="weight" color="#a68cff" gradientId="colorWeightMini" />
+            ) : (
+              <div className="h-16 flex items-center text-[10px] text-on-surface-variant/40 uppercase tracking-widest font-bold">Sin datos suficientes</div>
+            )}
           </div>
 
           <div className="bg-surface-container rounded-2xl p-6 border border-primary/5 flex flex-col justify-between">
             <div>
               <span className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">Grasa Corporal</span>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="font-headline font-black text-4xl">{formatNum(metricsHistory[metricsHistory.length - 1]?.bodyFat)}</span>
+                <span className="font-headline font-black text-4xl">{metricsHistory.length > 0 ? formatNum(metricsHistory[metricsHistory.length - 1]?.bodyFat) : '--'}</span>
                 <span className="text-secondary font-bold">%</span>
               </div>
             </div>
-            <MiniChart data={metricsChartData} dataKey="bodyFat" color="#ffb1c1" gradientId="colorFatMini" />
+            {metricsHistory.length > 1 ? (
+              <MiniChart data={metricsChartData} dataKey="bodyFat" color="#ffb1c1" gradientId="colorFatMini" />
+            ) : (
+              <div className="h-16 flex items-center text-[10px] text-on-surface-variant/40 uppercase tracking-widest font-bold">Sin datos suficientes</div>
+            )}
           </div>
 
           <div className="bg-surface-container rounded-2xl p-6 border border-primary/5 flex flex-col justify-between">
             <div>
               <span className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">Masa Muscular</span>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="font-headline font-black text-4xl">{formatNum(metricsHistory[metricsHistory.length - 1]?.muscleMass)}</span>
+                <span className="font-headline font-black text-4xl">{metricsHistory.length > 0 ? formatNum(metricsHistory[metricsHistory.length - 1]?.muscleMass) : '--'}</span>
                 <span className="text-tertiary font-bold">KG</span>
               </div>
             </div>
-            <MiniChart data={metricsChartData} dataKey="muscleMass" color="#00daf3" gradientId="colorMuscleMini" />
+            {metricsHistory.length > 1 ? (
+              <MiniChart data={metricsChartData} dataKey="muscleMass" color="#00daf3" gradientId="colorMuscleMini" />
+            ) : (
+              <div className="h-16 flex items-center text-[10px] text-on-surface-variant/40 uppercase tracking-widest font-bold">Sin datos suficientes</div>
+            )}
           </div>
         </div>
 
         <div className="bg-surface-container-high rounded-xl p-8 border border-primary/5">
           <h3 className="font-headline text-xl mb-8">Comparativa de Composición</h3>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={metricsChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
-                <XAxis dataKey="date" stroke="#acabaa" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke="#acabaa" fontSize={10} tickLine={false} axisLine={false} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#191a1a', border: 'none', borderRadius: '8px' }}
-                />
-                <Line type="monotone" dataKey="weight" name="Peso (kg)" stroke="#a68cff" strokeWidth={3} dot={{ fill: '#a68cff' }} />
-                <Line type="monotone" dataKey="muscleMass" name="Músculo (kg)" stroke="#00daf3" strokeWidth={3} dot={{ fill: '#00daf3' }} />
-                <Line type="monotone" dataKey="bodyFat" name="Grasa (%)" stroke="#ffb1c1" strokeWidth={3} dot={{ fill: '#ffb1c1' }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          {metricsHistory.length > 1 ? (
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={metricsChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
+                  <XAxis dataKey="date" stroke="#acabaa" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#acabaa" fontSize={10} tickLine={false} axisLine={false} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#191a1a', border: 'none', borderRadius: '8px' }}
+                  />
+                  <Line type="monotone" dataKey="weight" name="Peso (kg)" stroke="#a68cff" strokeWidth={3} dot={{ fill: '#a68cff' }} />
+                  <Line type="monotone" dataKey="muscleMass" name="Músculo (kg)" stroke="#00daf3" strokeWidth={3} dot={{ fill: '#00daf3' }} />
+                  <Line type="monotone" dataKey="bodyFat" name="Grasa (%)" stroke="#ffb1c1" strokeWidth={3} dot={{ fill: '#ffb1c1' }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-64 flex flex-col items-center justify-center text-on-surface-variant/40 border border-dashed border-outline-variant/20 rounded-lg">
+              <Activity size={48} className="mb-4 opacity-20" />
+              <p className="text-sm font-bold uppercase tracking-widest">Registra tu composición para ver la gráfica</p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -218,25 +237,32 @@ export const Stats: React.FC = () => {
       {/* Chart */}
       <section className="bg-surface-container-high rounded-xl p-8 border border-primary/5">
         <h3 className="font-headline text-xl mb-8">Progresión de Fuerza</h3>
-        <div className="h-48 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={strengthChartData}>
-              <defs>
-                <linearGradient id="colorWeight" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#a68cff" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#a68cff" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
-              <XAxis dataKey="date" stroke="#acabaa" fontSize={10} tickLine={false} axisLine={false} />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#191a1a', border: 'none', borderRadius: '8px' }}
-                itemStyle={{ color: '#a68cff' }}
-              />
-              <Area type="monotone" dataKey="weight" stroke="#a68cff" fillOpacity={1} fill="url(#colorWeight)" strokeWidth={3} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        {strengthChartData.length > 1 ? (
+          <div className="h-48 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={strengthChartData}>
+                <defs>
+                  <linearGradient id="colorWeight" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#a68cff" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#a68cff" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
+                <XAxis dataKey="date" stroke="#acabaa" fontSize={10} tickLine={false} axisLine={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#191a1a', border: 'none', borderRadius: '8px' }}
+                  itemStyle={{ color: '#a68cff' }}
+                />
+                <Area type="monotone" dataKey="weight" stroke="#a68cff" fillOpacity={1} fill="url(#colorWeight)" strokeWidth={3} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="h-48 flex flex-col items-center justify-center text-on-surface-variant/40 border border-dashed border-outline-variant/20 rounded-lg">
+            <TrendingUp size={48} className="mb-4 opacity-20" />
+            <p className="text-sm font-bold uppercase tracking-widest text-center px-4">Registra más récords para ver tu progresión</p>
+          </div>
+        )}
       </section>
 
       {/* Milestones */}
