@@ -35,19 +35,43 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       {/* Top Bar */}
       <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-xl border-b border-outline-variant/20 h-16 flex items-center justify-between px-6">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full overflow-hidden border border-primary/20 bg-surface-container">
+          <div className="w-10 h-10 flex items-center justify-center">
+            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+              <defs>
+                <linearGradient id="headerLogoGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#00E5FF"/>
+                  <stop offset="100%" stopColor="#7C4DFF"/>
+                </linearGradient>
+              </defs>
+              <path 
+                d="M15 75C20 60 35 50 50 50C65 50 75 60 80 75M50 50C50 50 55 25 75 20M50 50L40 35" 
+                stroke="url(#headerLogoGradient)" 
+                strokeWidth="7" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              />
+              <circle cx="82" cy="28" r="6" fill="url(#headerLogoGradient)" />
+              <path d="M40 60C48 55 58 55 65 60" stroke="url(#headerLogoGradient)" strokeWidth="2" strokeLinecap="round" opacity="0.4" />
+            </svg>
+          </div>
+          <span className="text-primary font-headline font-extrabold text-2xl tracking-tight">PureVibe</span>
+        </div>
+        <Link to="/profile" className="relative group">
+          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/20 bg-surface-container group-hover:border-primary transition-all shadow-lg">
             {profile?.photoURL ? (
-              <img src={profile.photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <img 
+                src={profile.photoURL} 
+                alt="Profile" 
+                className="w-full h-full object-cover" 
+                referrerPolicy="no-referrer" 
+              />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary">
+              <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary font-bold">
                 {profile?.displayName?.[0] || 'U'}
               </div>
             )}
           </div>
-          <span className="text-primary font-headline font-extrabold text-2xl tracking-tight">PureVibe</span>
-        </div>
-        <Link to="/profile" className="text-primary hover:bg-surface-container-high p-2 rounded-full transition-colors">
-          <Settings size={24} />
+          <div className="absolute inset-0 rounded-full bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity" />
         </Link>
       </header>
 
