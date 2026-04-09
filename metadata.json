@@ -1,0 +1,5 @@
+{
+  "name": "PureVibe",
+  "description": "Optimiza tu rendimiento con PureAI. Sincroniza tu plan nutricional, analiza tus macros con Gemini y sigue tus récords de fuerza.",
+  "requestFramePermissions": ["camera"]
+}
