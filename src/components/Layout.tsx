@@ -4,25 +4,31 @@ import { Sparkles, ClipboardList, BarChart3, Dumbbell, Settings, Plus, Droplets,
 import { useAuth } from '../hooks/useAuth';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { FoodDialog } from './FoodDialog';
+import { WaterDialog } from './WaterDialog';
+import { BodyCompositionDialog } from './BodyCompositionDialog';
+import { RecordDialog } from './RecordDialog';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { profile } = useAuth();
   const location = useLocation();
   const [isFabOpen, setIsFabOpen] = useState(false);
+  
+  const [activeDialog, setActiveDialog] = useState<'food' | 'water' | 'body' | 'record' | null>(null);
 
   const navItems = [
     { name: 'Vibe', path: '/', icon: Sparkles },
     { name: 'Plan', path: '/plan', icon: ClipboardList },
     { name: 'Stats', path: '/stats', icon: BarChart3 },
-    { name: 'Coach', path: '/profile', icon: Dumbbell },
+    { name: 'Coach', path: '/coach', icon: Dumbbell },
   ];
 
   const fabOptions = [
-    { name: 'Comida', icon: Utensils, color: 'bg-tertiary', textColor: 'text-on-tertiary' },
-    { name: 'Agua', icon: Droplets, color: 'bg-secondary', textColor: 'text-on-secondary' },
-    { name: 'Peso', icon: Scale, color: 'bg-primary', textColor: 'text-on-primary' },
-    { name: 'Récord', icon: Dumbbell, color: 'bg-surface-container-highest', textColor: 'text-on-surface' },
-  ];
+    { name: 'Comida', id: 'food', icon: Utensils, color: 'bg-tertiary', textColor: 'text-on-tertiary' },
+    { name: 'Agua', id: 'water', icon: Droplets, color: 'bg-secondary', textColor: 'text-on-secondary' },
+    { name: 'Composición', id: 'body', icon: Scale, color: 'bg-primary', textColor: 'text-on-primary' },
+    { name: 'Récord', id: 'record', icon: Dumbbell, color: 'bg-surface-container-highest', textColor: 'text-on-surface' },
+  ] as const;
 
   return (
     <div className="min-h-screen bg-background text-on-background font-body relative">
@@ -40,15 +46,21 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           </div>
           <span className="text-primary font-headline font-extrabold text-2xl tracking-tight">PureVibe</span>
         </div>
-        <button className="text-primary hover:bg-surface-container-high p-2 rounded-full transition-colors">
+        <Link to="/profile" className="text-primary hover:bg-surface-container-high p-2 rounded-full transition-colors">
           <Settings size={24} />
-        </button>
+        </Link>
       </header>
 
       {/* Main Content */}
       <main className="pt-20 pb-32 px-6 max-w-2xl mx-auto">
         {children}
       </main>
+
+      {/* Dialogs */}
+      <FoodDialog isOpen={activeDialog === 'food'} onClose={() => setActiveDialog(null)} />
+      <WaterDialog isOpen={activeDialog === 'water'} onClose={() => setActiveDialog(null)} />
+      <BodyCompositionDialog isOpen={activeDialog === 'body'} onClose={() => setActiveDialog(null)} />
+      <RecordDialog isOpen={activeDialog === 'record'} onClose={() => setActiveDialog(null)} />
 
       {/* FAB Menu Overlay */}
       <AnimatePresence>
@@ -57,7 +69,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 flex items-end justify-end pr-6 pb-40"
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 flex items-end justify-end pr-6 pb-48"
             onClick={() => setIsFabOpen(false)}
           >
             <div className="flex flex-col items-end gap-4" onClick={e => e.stopPropagation()}>
@@ -71,8 +83,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   className="flex items-center gap-4 group"
                   onClick={() => {
                     setIsFabOpen(false);
-                    // TODO: Open specific modal based on option in future iterations
-                    alert(`Próximamente: Registrar ${option.name}`);
+                    setActiveDialog(option.id);
                   }}
                 >
                   <span className="font-bold text-sm bg-surface-container-high px-4 py-2 rounded-xl shadow-lg border border-outline-variant/20">{option.name}</span>

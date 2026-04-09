@@ -55,18 +55,18 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-          (request.auth.token.email == "luisfonsecac26@gmail.com" && request.auth.token.email_verified == true));
+        (
+          (request.auth.token.email == "luisfonsecac26@gmail.com" && request.auth.token.email_verified == true) ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user') == 'admin')
+        );
     }
 
     function isValidUser(data) {
       return data.keys().hasAll(['uid', 'email', 'displayName', 'createdAt']) &&
              data.uid is string && data.uid.size() > 0 &&
              data.email is string && isValidEmail(data.email) &&
-             data.displayName is string && data.displayName.size() > 0 && data.displayName.size() < 100 &&
-             data.createdAt is number &&
-             (!('bodyMetrics' in data) || data.bodyMetrics is map) &&
-             (!('nutritionalPlan' in data) || data.nutritionalPlan is map);
+             data.displayName is string && data.displayName.size() > 0 &&
+             data.createdAt is number;
     }
 
     function isValidDailyLog(data) {
@@ -79,7 +79,7 @@ service cloud.firestore {
     function isValidStrengthRecord(data) {
       return data.keys().hasAll(['id', 'userId', 'exercise', 'weight', 'date']) &&
              data.userId is string &&
-             data.exercise in ['Squat', 'Bench Press', 'Deadlift'] &&
+             data.exercise is string && data.exercise.size() > 0 && data.exercise.size() < 50 &&
              data.weight is number && data.weight > 0 &&
              data.date is string;
     }
@@ -92,39 +92,34 @@ service cloud.firestore {
              data.createdAt is number;
     }
 
+    function isValidSavedMeal(data) {
+      return data.keys().hasAll(['id', 'userId', 'name', 'ingredients']) &&
+             data.userId is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.ingredients is list && data.ingredients.size() <= 50;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
 
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && isValidUser(request.resource.data) && 
-                      (!('role' in request.resource.data) || request.resource.data.role == 'user');
-      allow update: if (isOwner(userId) && isValidUser(request.resource.data) && 
-                       request.resource.data.uid == resource.data.uid &&
-                       request.resource.data.email == resource.data.email &&
-                       (!('role' in request.resource.data) || request.resource.data.role == resource.data.role)) || 
-                       isAdmin();
-
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
       match /dailyLogs/{logId} {
-        allow read: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && isValidDailyLog(request.resource.data) && request.resource.data.userId == userId;
-        allow update: if isOwner(userId) && isValidDailyLog(request.resource.data) && request.resource.data.userId == resource.data.userId;
-        allow delete: if isOwner(userId) || isAdmin();
+        allow read, write: if request.auth != null && request.auth.uid == userId;
       }
 
       match /strengthRecords/{recordId} {
-        allow read: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && isValidStrengthRecord(request.resource.data) && request.resource.data.userId == userId;
-        allow update: if isOwner(userId) && isValidStrengthRecord(request.resource.data) && request.resource.data.userId == resource.data.userId;
-        allow delete: if isOwner(userId) || isAdmin();
+        allow read, write: if request.auth != null && request.auth.uid == userId;
       }
 
       match /bodyMetricsHistory/{historyId} {
-        allow read: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && isValidBodyMetricsHistory(request.resource.data) && request.resource.data.userId == userId;
-        allow update: if isOwner(userId) && isValidBodyMetricsHistory(request.resource.data) && request.resource.data.userId == resource.data.userId;
-        allow delete: if isOwner(userId) || isAdmin();
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      match /savedMeals/{mealId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
 

@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { useAuth } from '../hooks/useAuth';
 import { getVibeAdvice } from '../services/geminiService';
 import { Utensils, Wheat, Droplets, Leaf, Check, Timer, Sparkles } from 'lucide-react';
-import { collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, limit, doc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { DailyLog } from '../types';
+import { formatNum, getLocalDateString } from '../lib/utils';
 
 export const Dashboard: React.FC = () => {
   const { profile, user } = useAuth();
@@ -14,23 +15,21 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      const fetchLog = async () => {
-        try {
-          const today = new Date().toISOString().split('T')[0];
-          const q = query(
-            collection(db, `users/${user.uid}/dailyLogs`),
-            where('date', '==', today),
-            limit(1)
-          );
-          const snap = await getDocs(q);
-          if (!snap.empty) {
-            setDailyLog(snap.docs[0].data() as DailyLog);
-          }
-        } catch (err) {
-          handleFirestoreError(err, OperationType.LIST, `users/${user.uid}/dailyLogs`);
+      const today = getLocalDateString();
+      const logRef = doc(db, `users/${user.uid}/dailyLogs`, today);
+      
+      const unsubscribe = onSnapshot(logRef, (docSnap) => {
+        if (docSnap.exists()) {
+          setDailyLog(docSnap.data() as DailyLog);
+        } else {
+          // If log doesn't exist for today, it starts at 0 naturally
+          setDailyLog(null);
         }
-      };
-      fetchLog();
+      }, (error) => {
+        handleFirestoreError(error, OperationType.GET, `users/${user.uid}/dailyLogs/${today}`);
+      });
+
+      return () => unsubscribe();
     }
   }, [user]);
 
@@ -52,13 +51,40 @@ export const Dashboard: React.FC = () => {
     calories: Math.max(0, goals.calories - macros.calories)
   };
 
+  const firstName = profile?.displayName?.split(' ')[0] || 'Viber';
+  const ratio = goals.calories > 0 ? macros.calories / goals.calories : 0;
+  const greetingCategory = ratio >= 0.95 ? 'done' : ratio >= 0.1 ? 'progress' : 'start';
+
+  const greetingPrefix = useMemo(() => {
+    const phrases = {
+      start: ["¡Qué buena nota,", "¡A darle con todo,", "¡Hoy es un gran día,", "¡Con toda la actitud,"],
+      progress: ["¡Vas súper bien,", "¡Excelente ritmo,", "¡Sigamos sumando,", "¡Buena energía,"],
+      done: ["¡Energía a tope,", "¡Día coronado,", "¡Bien alimentado,", "¡Cerrando con fuerza,"]
+    };
+    const list = phrases[greetingCategory];
+    return list[Math.floor(Math.random() * list.length)];
+  }, [greetingCategory]);
+
+  const todayDisplay = new Date().toLocaleDateString('es-ES', { 
+    weekday: 'long', 
+    day: 'numeric', 
+    month: 'long' 
+  });
+
   return (
     <div className="space-y-8">
       <section>
-        <h1 className="font-headline text-4xl font-extrabold tracking-tight leading-tight">
-          ¡Qué buena nota, <span className="text-primary">{profile?.displayName?.split(' ')[0]}</span>!
-        </h1>
-        <p className="text-on-surface-variant mt-2 font-medium">Así va tu vibra de hoy:</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="font-headline text-4xl font-extrabold tracking-tight leading-tight">
+              {greetingPrefix} <span className="text-primary">{firstName}</span>!
+            </h1>
+            <p className="text-on-surface-variant mt-2 font-medium capitalize">{todayDisplay}</p>
+          </div>
+          <div className="bg-surface-container-high px-3 py-1 rounded-full border border-outline-variant/20">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-primary">Hoy</span>
+          </div>
+        </div>
       </section>
 
       {/* Vibe Graphic (Simplified Ring) */}
@@ -91,7 +117,7 @@ export const Dashboard: React.FC = () => {
           <div className="text-center z-10">
             <span className="text-on-surface-variant font-label text-[10px] uppercase tracking-widest">Restante</span>
             <div className="font-headline font-extrabold text-5xl">
-              {remaining.calories}<span className="text-xl text-primary">kcal</span>
+              {formatNum(remaining.calories)}<span className="text-xl text-primary">kcal</span>
             </div>
           </div>
         </div>
@@ -116,34 +142,66 @@ export const Dashboard: React.FC = () => {
           <Utensils className="text-tertiary" size={32} />
           <div>
             <p className="text-on-surface-variant font-label text-[10px] uppercase font-bold tracking-widest">Proteína</p>
-            <p className="text-on-surface font-headline text-3xl font-extrabold">{macros.protein}g</p>
-            <p className="text-[10px] text-on-surface-variant mt-1">Faltan: {remaining.protein}g</p>
+            <p className="text-on-surface font-headline text-3xl font-extrabold">{formatNum(macros.protein)}g</p>
+            <p className="text-[10px] text-on-surface-variant mt-1">Faltan: {formatNum(remaining.protein)}g</p>
           </div>
         </div>
         <div className="bg-secondary/10 rounded-xl p-5 flex flex-col justify-between aspect-square border border-secondary/20">
           <Wheat className="text-secondary" size={32} />
           <div>
             <p className="text-on-surface-variant font-label text-[10px] uppercase font-bold tracking-widest">Carbos</p>
-            <p className="text-on-surface font-headline text-3xl font-extrabold">{macros.carbs}g</p>
-            <p className="text-[10px] text-on-surface-variant mt-1">Faltan: {remaining.carbs}g</p>
+            <p className="text-on-surface font-headline text-3xl font-extrabold">{formatNum(macros.carbs)}g</p>
+            <p className="text-[10px] text-on-surface-variant mt-1">Faltan: {formatNum(remaining.carbs)}g</p>
           </div>
         </div>
         <div className="bg-primary/10 rounded-xl p-5 flex flex-col justify-between aspect-square border border-primary/20">
           <Droplets className="text-primary" size={32} />
           <div>
             <p className="text-on-surface-variant font-label text-[10px] uppercase font-bold tracking-widest">Grasas</p>
-            <p className="text-on-surface font-headline text-3xl font-extrabold">{macros.fats}g</p>
-            <p className="text-[10px] text-on-surface-variant mt-1">Faltan: {remaining.fats}g</p>
+            <p className="text-on-surface font-headline text-3xl font-extrabold">{formatNum(macros.fats)}g</p>
+            <p className="text-[10px] text-on-surface-variant mt-1">Faltan: {formatNum(remaining.fats)}g</p>
           </div>
         </div>
-        <div className="bg-surface-container-highest rounded-xl p-5 flex flex-col justify-between aspect-square">
-          <Leaf className="text-secondary" size={32} />
+        <div className="bg-surface-container-highest rounded-xl p-5 flex flex-col justify-between aspect-square border border-outline-variant/20">
+          <Droplets className="text-secondary fill-secondary/20" size={32} />
           <div>
-            <p className="text-on-surface-variant font-label text-[10px] uppercase font-bold tracking-widest">Grasa Corporal</p>
-            <p className="text-on-surface font-headline text-3xl font-extrabold">{profile?.bodyMetrics?.bodyFat || '--'}%</p>
+            <p className="text-on-surface-variant font-label text-[10px] uppercase font-bold tracking-widest">Agua</p>
+            <p className="text-on-surface font-headline text-3xl font-extrabold">{formatNum(dailyLog?.waterIntake || 0)}<span className="text-lg text-on-surface-variant ml-1">ml</span></p>
           </div>
         </div>
       </section>
+
+      {/* Meals List */}
+      {dailyLog?.meals && dailyLog.meals.length > 0 && (
+        <section className="space-y-4">
+          <h3 className="font-headline font-bold text-xl">Comidas de Hoy</h3>
+          <div className="space-y-3">
+            {dailyLog.meals.map((meal) => (
+              <div key={meal.id} className="bg-surface-container p-4 rounded-xl flex items-center gap-4 border border-outline-variant/10">
+                {meal.imageUrl ? (
+                  <img src={meal.imageUrl} alt={meal.name} className="w-16 h-16 rounded-lg object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="w-16 h-16 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+                    <Utensils size={24} />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold truncate">{meal.name}</p>
+                  <p className="text-xs text-on-surface-variant">
+                    {new Date(meal.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-primary">{formatNum(meal.macros.calories)} kcal</p>
+                  <p className="text-[10px] text-on-surface-variant">
+                    P: {formatNum(meal.macros.protein)}g | C: {formatNum(meal.macros.carbs)}g | G: {formatNum(meal.macros.fats)}g
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Daily Goals */}
       <section className="space-y-4">

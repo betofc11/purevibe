@@ -6,6 +6,7 @@ import { analyzeNutritionPlan } from '../services/geminiService';
 import { useAuth } from '../hooks/useAuth';
 import { doc, setDoc, collection, addDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
+import { formatNum } from '../lib/utils';
 
 export const Plan: React.FC = () => {
   const { user, profile } = useAuth();
@@ -132,22 +133,22 @@ export const Plan: React.FC = () => {
             </div>
             <div className="bg-surface-container-high p-4 rounded-lg">
               <p className="text-xs text-on-surface-variant uppercase font-bold">Calorías</p>
-              <p className="font-bold text-lg">{(result || currentPlan).calories} kcal</p>
+              <p className="font-bold text-lg">{formatNum((result || currentPlan).calories)} kcal</p>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-tertiary/10 p-3 rounded-lg border-b-2 border-tertiary">
               <p className="text-[10px] text-tertiary uppercase font-bold">Proteína</p>
-              <p className="font-bold">{(result || currentPlan).protein}g</p>
+              <p className="font-bold">{formatNum((result || currentPlan).protein)}g</p>
             </div>
             <div className="bg-secondary/10 p-3 rounded-lg border-b-2 border-secondary">
               <p className="text-[10px] text-secondary uppercase font-bold">Carbos</p>
-              <p className="font-bold">{(result || currentPlan).carbs}g</p>
+              <p className="font-bold">{formatNum((result || currentPlan).carbs)}g</p>
             </div>
             <div className="bg-primary/10 p-3 rounded-lg border-b-2 border-primary">
               <p className="text-[10px] text-primary uppercase font-bold">Grasas</p>
-              <p className="font-bold">{(result || currentPlan).fats}g</p>
+              <p className="font-bold">{formatNum((result || currentPlan).fats)}g</p>
             </div>
           </div>
 

@@ -6,6 +6,7 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { StrengthRecord, BodyMetricsHistory } from '../types';
 import { Trophy, TrendingUp, Zap, Dumbbell, Activity, Scale } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { cn, formatNum } from '../lib/utils';
 
 export const Stats: React.FC = () => {
   const { user } = useAuth();
@@ -43,11 +44,16 @@ export const Stats: React.FC = () => {
     }
   }, [user]);
 
-  const bests = {
-    Squat: records.filter(r => r.exercise === 'Squat').sort((a, b) => b.weight - a.weight)[0]?.weight || 0,
-    Bench: records.filter(r => r.exercise === 'Bench Press').sort((a, b) => b.weight - a.weight)[0]?.weight || 0,
-    Deadlift: records.filter(r => r.exercise === 'Deadlift').sort((a, b) => b.weight - a.weight)[0]?.weight || 0,
-  };
+  const bestsByExercise = records.reduce((acc, record) => {
+    if (!acc[record.exercise] || record.weight > acc[record.exercise]) {
+      acc[record.exercise] = record.weight;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  const exerciseNames = Object.keys(bestsByExercise);
+  const mainExercise = exerciseNames.includes('Sentadilla') ? 'Sentadilla' : (exerciseNames[0] || 'Sentadilla');
+  const otherExercises = exerciseNames.filter(e => e !== mainExercise);
 
   const strengthChartData = records.slice().reverse().map(r => ({
     date: new Date(r.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
@@ -61,6 +67,30 @@ export const Stats: React.FC = () => {
     bodyFat: m.bodyFat,
     muscleMass: m.muscleMass
   }));
+
+  const MiniChart: React.FC<{ data: any[], dataKey: string, color: string, gradientId: string }> = ({ data, dataKey, color, gradientId }) => (
+    <div className="h-16 w-full mt-2">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data}>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
+              <stop offset="95%" stopColor={color} stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+          <Area 
+            type="monotone" 
+            dataKey={dataKey} 
+            stroke={color} 
+            fillOpacity={1} 
+            fill={`url(#${gradientId})`} 
+            strokeWidth={2} 
+            isAnimationActive={true}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
 
   return (
     <div className="space-y-10">
@@ -83,47 +113,58 @@ export const Stats: React.FC = () => {
           <Scale className="text-primary" size={24} />
           Evolución Corporal
         </h2>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-surface-container-high rounded-xl p-8 border border-primary/5">
-            <h3 className="font-headline text-xl mb-8">Peso y Composición</h3>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={metricsChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
-                  <XAxis dataKey="date" stroke="#acabaa" fontSize={10} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#acabaa" fontSize={10} tickLine={false} axisLine={false} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#191a1a', border: 'none', borderRadius: '8px' }}
-                  />
-                  <Line type="monotone" dataKey="weight" name="Peso (kg)" stroke="#a68cff" strokeWidth={3} dot={{ fill: '#a68cff' }} />
-                  <Line type="monotone" dataKey="muscleMass" name="Músculo (kg)" stroke="#00daf3" strokeWidth={3} dot={{ fill: '#00daf3' }} />
-                  <Line type="monotone" dataKey="bodyFat" name="Grasa (%)" stroke="#ffb1c1" strokeWidth={3} dot={{ fill: '#ffb1c1' }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <div className="bg-surface-container rounded-xl p-6 border border-primary/5">
-              <span className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">Último Peso</span>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-surface-container rounded-2xl p-6 border border-primary/5 flex flex-col justify-between">
+            <div>
+              <span className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">Peso Actual</span>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="font-headline font-black text-4xl">{metricsHistory[metricsHistory.length - 1]?.weight || '--'}</span>
+                <span className="font-headline font-black text-4xl">{formatNum(metricsHistory[metricsHistory.length - 1]?.weight)}</span>
                 <span className="text-primary font-bold">KG</span>
               </div>
             </div>
-            <div className="bg-surface-container rounded-xl p-6 border border-primary/5">
-              <span className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">Última Grasa</span>
+            <MiniChart data={metricsChartData} dataKey="weight" color="#a68cff" gradientId="colorWeightMini" />
+          </div>
+
+          <div className="bg-surface-container rounded-2xl p-6 border border-primary/5 flex flex-col justify-between">
+            <div>
+              <span className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">Grasa Corporal</span>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="font-headline font-black text-4xl">{metricsHistory[metricsHistory.length - 1]?.bodyFat || '--'}</span>
+                <span className="font-headline font-black text-4xl">{formatNum(metricsHistory[metricsHistory.length - 1]?.bodyFat)}</span>
                 <span className="text-secondary font-bold">%</span>
               </div>
             </div>
-            <div className="bg-surface-container rounded-xl p-6 border border-primary/5">
-              <span className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">Último Músculo</span>
+            <MiniChart data={metricsChartData} dataKey="bodyFat" color="#ffb1c1" gradientId="colorFatMini" />
+          </div>
+
+          <div className="bg-surface-container rounded-2xl p-6 border border-primary/5 flex flex-col justify-between">
+            <div>
+              <span className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">Masa Muscular</span>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="font-headline font-black text-4xl">{metricsHistory[metricsHistory.length - 1]?.muscleMass || '--'}</span>
+                <span className="font-headline font-black text-4xl">{formatNum(metricsHistory[metricsHistory.length - 1]?.muscleMass)}</span>
                 <span className="text-tertiary font-bold">KG</span>
               </div>
             </div>
+            <MiniChart data={metricsChartData} dataKey="muscleMass" color="#00daf3" gradientId="colorMuscleMini" />
+          </div>
+        </div>
+
+        <div className="bg-surface-container-high rounded-xl p-8 border border-primary/5">
+          <h3 className="font-headline text-xl mb-8">Comparativa de Composición</h3>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={metricsChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#262626" vertical={false} />
+                <XAxis dataKey="date" stroke="#acabaa" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis stroke="#acabaa" fontSize={10} tickLine={false} axisLine={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#191a1a', border: 'none', borderRadius: '8px' }}
+                />
+                <Line type="monotone" dataKey="weight" name="Peso (kg)" stroke="#a68cff" strokeWidth={3} dot={{ fill: '#a68cff' }} />
+                <Line type="monotone" dataKey="muscleMass" name="Músculo (kg)" stroke="#00daf3" strokeWidth={3} dot={{ fill: '#00daf3' }} />
+                <Line type="monotone" dataKey="bodyFat" name="Grasa (%)" stroke="#ffb1c1" strokeWidth={3} dot={{ fill: '#ffb1c1' }} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </section>
@@ -142,36 +183,34 @@ export const Stats: React.FC = () => {
               <Dumbbell size={200} className="text-primary" />
             </div>
             <div className="relative z-10">
-              <span className="font-label text-sm uppercase tracking-widest text-primary font-bold">Sentadilla</span>
+              <span className="font-label text-sm uppercase tracking-widest text-primary font-bold">{mainExercise}</span>
               <h3 className="font-headline text-2xl text-on-surface mt-1">Personal Best</h3>
             </div>
             <div className="relative z-10 flex items-baseline gap-4 mt-8">
-              <span className="font-headline font-black text-8xl leading-none tracking-tighter">{bests.Squat}</span>
+              <span className="font-headline font-black text-8xl leading-none tracking-tighter">{formatNum(bestsByExercise[mainExercise] || 0)}</span>
               <span className="font-headline text-3xl text-primary font-bold">KG</span>
             </div>
           </motion.div>
 
           <div className="space-y-4">
-            <div className="bg-surface-container rounded-xl p-6 border border-primary/5 flex justify-between items-center">
-              <div>
-                <span className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">Banca</span>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="font-headline font-black text-4xl">{bests.Bench}</span>
-                  <span className="text-primary font-bold">KG</span>
+            {otherExercises.length > 0 ? (
+              otherExercises.slice(0, 3).map((ex, idx) => (
+                <div key={ex} className="bg-surface-container rounded-xl p-6 border border-primary/5 flex justify-between items-center">
+                  <div>
+                    <span className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">{ex}</span>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="font-headline font-black text-4xl">{formatNum(bestsByExercise[ex])}</span>
+                      <span className={cn("font-bold", idx % 2 === 0 ? "text-primary" : "text-secondary")}>KG</span>
+                    </div>
+                  </div>
+                  {idx % 2 === 0 ? <TrendingUp className="text-primary" /> : <Zap className="text-secondary fill-secondary" />}
                 </div>
+              ))
+            ) : (
+              <div className="bg-surface-container rounded-xl p-6 border border-primary/5 text-center text-on-surface-variant flex flex-col items-center justify-center h-full min-h-[120px]">
+                <p className="text-sm">Añade más récords para verlos aquí</p>
               </div>
-              <TrendingUp className="text-primary" />
-            </div>
-            <div className="bg-surface-container rounded-xl p-6 border border-primary/5 flex justify-between items-center">
-              <div>
-                <span className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">Peso Muerto</span>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="font-headline font-black text-4xl">{bests.Deadlift}</span>
-                  <span className="text-secondary font-bold">KG</span>
-                </div>
-              </div>
-              <Zap className="text-secondary fill-secondary" />
-            </div>
+            )}
           </div>
         </div>
       </section>

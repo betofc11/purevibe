@@ -97,7 +97,7 @@
       "properties": {
         "id": { "type": "string" },
         "userId": { "type": "string" },
-        "exercise": { "type": "string", "enum": ["Squat", "Bench Press", "Deadlift"] },
+        "exercise": { "type": "string" },
         "weight": { "type": "number" },
         "date": { "type": "string", "format": "date-time" }
       },
@@ -117,6 +117,37 @@
         "createdAt": { "type": "number" }
       },
       "required": ["id", "userId", "weight", "date", "createdAt"]
+    },
+    "SavedMeal": {
+      "title": "Saved Meal",
+      "description": "A frequently consumed meal saved for quick access.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "ingredients": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "quantity": { "type": "number" },
+              "unit": { "type": "string" }
+            }
+          }
+        },
+        "macros": {
+          "type": "object",
+          "properties": {
+            "calories": { "type": "number" },
+            "protein": { "type": "number" },
+            "carbs": { "type": "number" },
+            "fats": { "type": "number" }
+          }
+        }
+      },
+      "required": ["id", "userId", "name", "ingredients"]
     }
   },
   "firestore": {
@@ -135,6 +166,10 @@
     "/users/{userId}/bodyMetricsHistory/{historyId}": {
       "schema": "BodyMetricsHistory",
       "description": "Historical body metrics for tracking progress."
+    },
+    "/users/{userId}/savedMeals/{mealId}": {
+      "schema": "SavedMeal",
+      "description": "User's saved frequent meals."
     }
   }
 }

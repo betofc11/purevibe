@@ -5,6 +5,7 @@ import { signOut } from 'firebase/auth';
 import { doc, updateDoc, collection, addDoc } from 'firebase/firestore';
 import { motion } from 'motion/react';
 import { LogOut, User, Mail, Edit3, Save, History } from 'lucide-react';
+import { formatNum } from '../lib/utils';
 
 export const Profile: React.FC = () => {
   const { profile, user } = useAuth();
@@ -139,7 +140,7 @@ export const Profile: React.FC = () => {
                   className="w-full bg-surface-container-high border border-outline-variant/30 rounded-lg px-4 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               ) : (
-                <p className="font-medium">{profile?.bodyMetrics?.weight || '--'} kg</p>
+                <p className="font-medium">{formatNum(profile?.bodyMetrics?.weight)} kg</p>
               )}
             </div>
             <div>
@@ -152,7 +153,7 @@ export const Profile: React.FC = () => {
                   className="w-full bg-surface-container-high border border-outline-variant/30 rounded-lg px-4 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               ) : (
-                <p className="font-medium">{profile?.bodyMetrics?.bodyFat || '--'}%</p>
+                <p className="font-medium">{formatNum(profile?.bodyMetrics?.bodyFat)}%</p>
               )}
             </div>
             <div>
@@ -165,7 +166,7 @@ export const Profile: React.FC = () => {
                   className="w-full bg-surface-container-high border border-outline-variant/30 rounded-lg px-4 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               ) : (
-                <p className="font-medium">{profile?.bodyMetrics?.muscleMass || '--'} kg</p>
+                <p className="font-medium">{formatNum(profile?.bodyMetrics?.muscleMass)} kg</p>
               )}
             </div>
           </div>

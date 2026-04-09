@@ -5,6 +5,7 @@ import { Auth } from './components/Auth';
 import { Dashboard } from './screens/Dashboard';
 import { Plan } from './screens/Plan';
 import { Stats } from './screens/Stats';
+import { Coach } from './screens/Coach';
 import { Profile } from './screens/Profile';
 import { Loader2 } from 'lucide-react';
 
@@ -30,6 +31,7 @@ function AppContent() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/plan" element={<Plan />} />
           <Route path="/stats" element={<Stats />} />
+          <Route path="/coach" element={<Coach />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
