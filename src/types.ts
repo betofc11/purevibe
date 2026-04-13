@@ -106,7 +106,8 @@ export interface Meal {
 export interface StrengthRecord {
   id: string;
   userId: string;
-  exercise: 'Squat' | 'Bench Press' | 'Deadlift';
+  exercise: string;
   weight: number;
   date: string;
+  muscleGroups: string[];
 }

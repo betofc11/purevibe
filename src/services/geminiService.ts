@@ -214,6 +214,7 @@ export const getVibeAdvice = async (dailyMacros: any, goals: any, bodyMetrics?: 
     
     Proporciona un consejo corto (máximo 2 frases) y motivador al estilo "PureVibe" (fresco, directo, energético, un poco rebelde pero enfocado).
     Dile exactamente qué le falta consumir para llegar a su meta de hoy de forma natural.
+    IMPORTANTE: No menciones nunca métricas de composición corporal como porcentaje de grasa, masa muscular o peso en el consejo. Enfócate únicamente en la nutrición y la energía.
   `;
 
   const response = await ai.models.generateContent({

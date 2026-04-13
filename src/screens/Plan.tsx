@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Upload, FileText, Camera, Loader2, CheckCircle2, AlertCircle, ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import { analyzeNutritionPlan, calculateMacrosFromIngredients } from '../services/geminiService';
 import { useAuth } from '../hooks/useAuth';
@@ -254,56 +254,76 @@ export const Plan: React.FC = () => {
                     {expandedMeal === mealCategory.type ? <ChevronUp size={20} className="text-primary" /> : <ChevronDown size={20} className="text-on-surface-variant" />}
                   </button>
                   
-                  {expandedMeal === mealCategory.type && (
-                    <div className="px-3 pb-3 space-y-2">
-                      {mealCategory.options.map((option: any, optIdx: number) => {
-                        const optionKey = `${mealCategory.type}-${optIdx}`;
-                        const isOptExpanded = expandedOptions[optionKey];
-                        const isLogging = loggingMeal === `${mealCategory.type}-${option.title}`;
-                        const isSuccess = loggingMeal === `${mealCategory.type}-${option.title}-success`;
-                        
-                        return (
-                          <div key={optIdx} className="bg-surface-container-high rounded-[24px] overflow-hidden border border-outline-variant/5 transition-all">
-                            <div className="p-2 flex items-center justify-between gap-2">
-                              <button 
-                                onClick={() => setExpandedOptions(prev => ({...prev, [optionKey]: !prev[optionKey]}))}
-                                className="flex-1 flex items-center gap-3 text-left p-2 rounded-full hover:bg-surface-container-highest transition-colors"
-                              >
-                                <span className="bg-primary/20 text-primary w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">{optIdx + 1}</span>
-                                <span className="font-bold text-sm">{option.title}</span>
-                                {isOptExpanded ? <ChevronUp size={16} className="text-on-surface-variant flex-shrink-0 ml-auto" /> : <ChevronDown size={16} className="text-on-surface-variant flex-shrink-0 ml-auto" />}
-                              </button>
-                              <button 
-                                onClick={() => handleRegisterMeal(mealCategory.type, option)}
-                                disabled={isLogging || isSuccess}
-                                className={`flex items-center gap-1 px-4 py-2.5 rounded-full text-xs font-bold transition-colors disabled:opacity-50 flex-shrink-0 mr-1 ${
-                                  isSuccess ? 'bg-green-500/20 text-green-500' : 'bg-primary/10 hover:bg-primary/20 text-primary'
-                                }`}
-                              >
-                                {isLogging ? <Loader2 size={14} className="animate-spin" /> : isSuccess ? <CheckCircle2 size={14} /> : <Plus size={14} />}
-                                <span className="hidden sm:inline">{isLogging ? 'Registrando...' : isSuccess ? 'Registrado' : 'Registrar'}</span>
-                              </button>
-                            </div>
+                  <AnimatePresence>
+                    {expandedMeal === mealCategory.type && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-3 pb-3 space-y-2">
+                          {mealCategory.options.map((option: any, optIdx: number) => {
+                            const optionKey = `${mealCategory.type}-${optIdx}`;
+                            const isOptExpanded = expandedOptions[optionKey];
+                            const isLogging = loggingMeal === `${mealCategory.type}-${option.title}`;
+                            const isSuccess = loggingMeal === `${mealCategory.type}-${option.title}-success`;
                             
-                            {isOptExpanded && (
-                              <div className="px-4 pb-4 pt-1">
-                                <div className="bg-surface-container-highest/30 rounded-2xl p-4">
-                                  <ul className="space-y-3">
-                                    {option.ingredients.map((ing: any, ingIdx: number) => (
-                                      <li key={ingIdx} className="flex justify-between text-sm items-center">
-                                        <span className="text-on-surface-variant">{ing.name}</span>
-                                        <span className="font-bold text-primary bg-primary/10 px-2 py-1 rounded-lg text-xs">{ing.quantity} {ing.unit}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
+                            return (
+                              <div key={optIdx} className="bg-surface-container-high rounded-[24px] overflow-hidden border border-outline-variant/5 transition-all">
+                                <div className="p-2 flex items-center justify-between gap-2">
+                                  <button 
+                                    onClick={() => setExpandedOptions(prev => ({...prev, [optionKey]: !prev[optionKey]}))}
+                                    className="flex-1 flex items-center gap-3 text-left p-2 rounded-full hover:bg-surface-container-highest transition-colors"
+                                  >
+                                    <span className="bg-primary/20 text-primary w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">{optIdx + 1}</span>
+                                    <span className="font-bold text-sm">{option.title}</span>
+                                    {isOptExpanded ? <ChevronUp size={16} className="text-on-surface-variant flex-shrink-0 ml-auto" /> : <ChevronDown size={16} className="text-on-surface-variant flex-shrink-0 ml-auto" />}
+                                  </button>
+                                  <button 
+                                    onClick={() => handleRegisterMeal(mealCategory.type, option)}
+                                    disabled={isLogging || isSuccess}
+                                    className={`flex items-center gap-1 px-4 py-2.5 rounded-full text-xs font-bold transition-colors disabled:opacity-50 flex-shrink-0 mr-1 ${
+                                      isSuccess ? 'bg-green-500/20 text-green-500' : 'bg-primary/10 hover:bg-primary/20 text-primary'
+                                    }`}
+                                  >
+                                    {isLogging ? <Loader2 size={14} className="animate-spin" /> : isSuccess ? <CheckCircle2 size={14} /> : <Plus size={14} />}
+                                    <span className="hidden sm:inline">{isLogging ? 'Registrando...' : isSuccess ? 'Registrado' : 'Registrar'}</span>
+                                  </button>
                                 </div>
+                                
+                                <AnimatePresence>
+                                  {isOptExpanded && (
+                                    <motion.div 
+                                      initial={{ height: 0, opacity: 0 }}
+                                      animate={{ height: 'auto', opacity: 1 }}
+                                      exit={{ height: 0, opacity: 0 }}
+                                      transition={{ duration: 0.2, ease: 'easeInOut' }}
+                                      className="overflow-hidden"
+                                    >
+                                      <div className="px-4 pb-4 pt-1">
+                                        <div className="bg-surface-container-highest/30 rounded-2xl p-4">
+                                          <ul className="space-y-3">
+                                            {option.ingredients.map((ing: any, ingIdx: number) => (
+                                              <li key={ingIdx} className="flex justify-between text-sm items-center">
+                                                <span className="text-on-surface-variant">{ing.name}</span>
+                                                <span className="font-bold text-primary bg-primary/10 px-2 py-1 rounded-lg text-xs">{ing.quantity} {ing.unit}</span>
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      </div>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
                               </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               ))}
             </div>

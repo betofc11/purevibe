@@ -113,7 +113,7 @@ export const Dashboard: React.FC = () => {
         list.push({
           id: 'fat-loss',
           title: 'Enfoque Metabólico',
-          desc: 'Tu porcentaje de grasa sugiere un enfoque en déficit controlado y cardio ligero.',
+          desc: 'Tu perfil sugiere un enfoque en déficit controlado y cardio ligero para optimizar tu energía.',
           icon: <Leaf size={20} />,
           color: 'tertiary'
         });
@@ -121,8 +121,8 @@ export const Dashboard: React.FC = () => {
       if (muscleMass && muscleMass < weight * 0.4) {
         list.push({
           id: 'muscle',
-          title: 'Estímulo Hipertrófico',
-          desc: 'Tu masa muscular puede mejorar. Asegura entrenamientos de fuerza intensos.',
+          title: 'Estímulo Físico',
+          desc: 'Asegura entrenamientos de fuerza intensos para fortalecer tu estructura.',
           icon: <Timer size={20} />,
           color: 'secondary'
         });

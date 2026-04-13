@@ -3,19 +3,41 @@ import { Modal } from './Modal';
 import { Dumbbell, Loader2, Plus } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { StrengthRecord } from '../types';
 
-export const RecordDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+const MUSCLE_GROUPS = ['Pecho', 'Espalda', 'Piernas', 'Hombros', 'Brazos', 'Core'];
+
+export const RecordDialog: React.FC<{ 
+  isOpen: boolean; 
+  onClose: () => void;
+  initialData?: StrengthRecord | null;
+}> = ({ isOpen, onClose, initialData }) => {
   const { user } = useAuth();
   const [exercise, setExercise] = useState('Sentadilla');
   const [isCustom, setIsCustom] = useState(false);
   const [customExercise, setCustomExercise] = useState('');
   const [weight, setWeight] = useState('');
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [recentExercises, setRecentExercises] = useState<string[]>(['Sentadilla', 'Banca', 'Peso Muerto']);
 
   useEffect(() => {
     if (user && isOpen) {
+      if (initialData) {
+        setExercise(initialData.exercise);
+        setWeight(initialData.weight.toString());
+        setSelectedGroups(initialData.muscleGroups || []);
+        setIsCustom(false);
+        setCustomExercise('');
+      } else {
+        setExercise('Sentadilla');
+        setWeight('');
+        setSelectedGroups([]);
+        setIsCustom(false);
+        setCustomExercise('');
+      }
+
       const fetchExercises = async () => {
         try {
           const q = query(collection(db, `users/${user.uid}/strengthRecords`), orderBy('date', 'desc'));
@@ -33,24 +55,39 @@ export const RecordDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = 
     }
   }, [user, isOpen]);
 
+  const toggleGroup = (group: string) => {
+    setSelectedGroups(prev => 
+      prev.includes(group) ? prev.filter(g => g !== group) : [...prev, group]
+    );
+  };
+
   const handleSave = async () => {
     const finalExercise = isCustom ? customExercise.trim() : exercise;
-    if (!user || !weight || !finalExercise) return;
+    if (!user || !weight || !finalExercise || selectedGroups.length === 0) return;
     
     setLoading(true);
     try {
-      await addDoc(collection(db, `users/${user.uid}/strengthRecords`), {
-        id: Date.now().toString(),
-        userId: user.uid,
-        exercise: finalExercise,
-        weight: parseFloat(weight),
-        date: new Date().toISOString()
-      });
+      if (initialData && initialData.id) {
+        await updateDoc(doc(db, `users/${user.uid}/strengthRecords`, initialData.id), {
+          exercise: finalExercise,
+          weight: parseFloat(weight),
+          muscleGroups: selectedGroups,
+        });
+      } else {
+        await addDoc(collection(db, `users/${user.uid}/strengthRecords`), {
+          userId: user.uid,
+          exercise: finalExercise,
+          weight: parseFloat(weight),
+          muscleGroups: selectedGroups,
+          date: new Date().toISOString()
+        });
+      }
       
       onClose();
       setWeight('');
       setCustomExercise('');
       setIsCustom(false);
+      setSelectedGroups([]);
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}/strengthRecords`);
     } finally {
@@ -59,7 +96,7 @@ export const RecordDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = 
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Nuevo Récord">
+    <Modal isOpen={isOpen} onClose={onClose} title={initialData ? "Editar Récord" : "Nuevo Récord"}>
       <div className="space-y-6">
         <div className="flex justify-center mb-6">
           <div className="w-20 h-20 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface">
@@ -112,6 +149,25 @@ export const RecordDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = 
           </div>
 
           <div>
+            <label className="block text-sm font-medium text-on-surface-variant mb-2">Grupos Musculares</label>
+            <div className="flex flex-wrap gap-2">
+              {MUSCLE_GROUPS.map(group => (
+                <button
+                  key={group}
+                  onClick={() => toggleGroup(group)}
+                  className={`px-4 py-2 rounded-full text-xs font-bold transition-colors ${
+                    selectedGroups.includes(group) 
+                      ? 'bg-primary text-on-primary' 
+                      : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest'
+                  }`}
+                >
+                  {group}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
             <label className="block text-sm font-medium text-on-surface-variant mb-2">Peso Levantado (kg)</label>
             <input
               type="number"
@@ -125,7 +181,7 @@ export const RecordDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = 
 
         <button
           onClick={handleSave}
-          disabled={!weight || (isCustom && !customExercise.trim()) || loading}
+          disabled={!weight || (isCustom && !customExercise.trim()) || selectedGroups.length === 0 || loading}
           className="w-full bg-surface-container-highest text-on-surface py-4 rounded-xl font-bold disabled:opacity-50 flex items-center justify-center gap-2 mt-8"
         >
           {loading ? <Loader2 className="animate-spin" /> : 'Guardar Récord'}
