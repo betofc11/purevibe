@@ -36,6 +36,29 @@ export interface NutritionalPlan {
   fats: number;
   advice?: string;
   extractedAt: number;
+  meals?: PlanMealCategory[];
+}
+
+export interface PlanMealCategory {
+  type: string; // e.g., "Desayuno", "Almuerzo", "Cena", "Snack"
+  options: PlanMealOption[];
+}
+
+export interface PlanMealOption {
+  title: string;
+  ingredients: PlanIngredient[];
+  macros?: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fats: number;
+  };
+}
+
+export interface PlanIngredient {
+  name: string;
+  quantity: number;
+  unit: string;
 }
 
 export interface MacroGoals {
@@ -57,6 +80,14 @@ export interface DailyLog {
   };
   meals: Meal[];
   waterIntake: number; // in ml
+  aiAdvice?: string;
+  aiAdviceUpdatedAt?: number;
+  adviceMacros?: {
+    protein: number;
+    carbs: number;
+    fats: number;
+    calories: number;
+  };
 }
 
 export interface Meal {

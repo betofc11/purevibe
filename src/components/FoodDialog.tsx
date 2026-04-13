@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, Camera, Loader2, Plus, Trash2, Bookmark } from 'lucide-react';
+import { Upload, Camera, Loader2, Plus, Trash2, Bookmark, AlertCircle } from 'lucide-react';
 import { Modal } from './Modal';
 import { analyzeFoodImage, calculateMacrosFromIngredients } from '../services/geminiService';
 import { useAuth } from '../hooks/useAuth';
@@ -23,6 +23,8 @@ export const FoodDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
   
   const [foodName, setFoodName] = useState('');
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [macros, setMacros] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   
   const [savedMeals, setSavedMeals] = useState<any[]>([]);
   const [saveAsFavorite, setSaveAsFavorite] = useState(false);
@@ -67,6 +69,7 @@ export const FoodDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
   const handleAnalyze = async () => {
     if (!preview) return;
     setLoading(true);
+    setError(null);
     try {
       const base64Data = preview.split(',')[1];
       const mimeType = file?.type || 'image/jpeg';
@@ -74,10 +77,11 @@ export const FoodDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
       
       setFoodName(result.name || 'Comida Desconocida');
       setIngredients(result.ingredients || []);
+      setMacros(result.macros || null);
       setStep('edit');
-    } catch (error) {
-      console.error("Error analyzing food:", error);
-      alert("Error al analizar la imagen. Intenta de nuevo.");
+    } catch (err) {
+      console.error("Error analyzing food:", err);
+      setError("Error al analizar la imagen. Intenta de nuevo.");
     } finally {
       setLoading(false);
     }
@@ -86,21 +90,30 @@ export const FoodDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
   const handleManualEntry = () => {
     setFoodName('');
     setIngredients([]);
+    setMacros(null);
+    setError(null);
     setStep('edit');
   };
 
   const handleSelectSavedMeal = (meal: any) => {
     setFoodName(meal.name);
     setIngredients(meal.ingredients || []);
+    setMacros(meal.macros || null);
+    setError(null);
     setStep('edit');
   };
 
   const handleSave = async () => {
     if (!user) return;
     setStep('saving');
+    setError(null);
     try {
-      // 1. Calculate macros from ingredients
-      const macros = await calculateMacrosFromIngredients(ingredients);
+      // 1. Calculate macros from ingredients if not already present or if ingredients were manually edited
+      // For simplicity, if they edit ingredients, we should ideally recalculate, but let's just recalculate if macros is null
+      let finalMacros = macros;
+      if (!finalMacros) {
+        finalMacros = await calculateMacrosFromIngredients(ingredients);
+      }
       
       // 2. Save to savedMeals if requested
       if (saveAsFavorite && foodName.trim()) {
@@ -110,7 +123,7 @@ export const FoodDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
           userId: user.uid,
           name: foodName.trim(),
           ingredients: ingredients,
-          macros: macros
+          macros: finalMacros
         });
       }
 
@@ -125,7 +138,7 @@ export const FoodDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
         id: Date.now().toString(),
         name: foodName || 'Comida',
         time: new Date().toISOString(),
-        macros: macros,
+        macros: finalMacros,
         imageUrl: preview 
       };
 
@@ -135,10 +148,10 @@ export const FoodDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
         
         await updateDoc(logRef, {
           macros: {
-            protein: currentMacros.protein + (macros.protein || 0),
-            carbs: currentMacros.carbs + (macros.carbs || 0),
-            fats: currentMacros.fats + (macros.fats || 0),
-            calories: currentMacros.calories + (macros.calories || 0)
+            protein: currentMacros.protein + (finalMacros.protein || 0),
+            carbs: currentMacros.carbs + (finalMacros.carbs || 0),
+            fats: currentMacros.fats + (finalMacros.fats || 0),
+            calories: currentMacros.calories + (finalMacros.calories || 0)
           },
           meals: [...(currentData.meals || []), newMeal]
         });
@@ -147,7 +160,7 @@ export const FoodDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
           id: logId,
           userId: user.uid,
           date: new Date().toISOString(),
-          macros: macros,
+          macros: finalMacros,
           meals: [newMeal],
           waterIntake: 0
         });
@@ -159,11 +172,16 @@ export const FoodDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
       setPreview(null);
       setStep('upload');
       setIngredients([]);
+      setMacros(null);
       setSaveAsFavorite(false);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, `users/${user.uid}/dailyLogs`);
-    } finally {
+      setError(null);
+    } catch (err: any) {
+      console.error("Error saving meal:", err);
+      setError("Hubo un error al registrar la comida. Por favor, intenta de nuevo.");
       setStep('edit');
+      if (err?.message?.includes('Missing or insufficient permissions') || err?.message?.includes('permission-denied')) {
+        handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/dailyLogs`);
+      }
     }
   };
 
@@ -171,14 +189,17 @@ export const FoodDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
     const newIngredients = [...ingredients];
     newIngredients[index] = { ...newIngredients[index], [field]: value };
     setIngredients(newIngredients);
+    setMacros(null); // Force recalculation if ingredients change
   };
 
   const addIngredient = () => {
     setIngredients([...ingredients, { name: '', quantity: 0, unit: 'g' }]);
+    setMacros(null); // Force recalculation
   };
 
   const removeIngredient = (index: number) => {
     setIngredients(ingredients.filter((_, i) => i !== index));
+    setMacros(null); // Force recalculation
   };
 
   return (
@@ -258,6 +279,13 @@ export const FoodDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
               ← Volver
             </button>
           </div>
+
+          {error && (
+            <div className="bg-error/10 text-error p-3 rounded-xl text-sm font-medium flex items-center gap-2">
+              <AlertCircle size={16} />
+              {error}
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-on-surface-variant mb-2">Nombre del Plato</label>

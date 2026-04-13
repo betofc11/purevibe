@@ -11,7 +11,8 @@ import { Link } from 'react-router-dom';
 
 export const Dashboard: React.FC = () => {
   const { profile, user } = useAuth();
-  const [advice, setAdvice] = useState<string>('Analizando tu vibra...');
+  const [advice, setAdvice] = useState<string>('');
+  const [generatingAdvice, setGeneratingAdvice] = useState(false);
   const [dailyLog, setDailyLog] = useState<DailyLog | null>(null);
 
   useEffect(() => {
@@ -21,10 +22,14 @@ export const Dashboard: React.FC = () => {
       
       const unsubscribe = onSnapshot(logRef, (docSnap) => {
         if (docSnap.exists()) {
-          setDailyLog(docSnap.data() as DailyLog);
+          const data = docSnap.data() as DailyLog;
+          setDailyLog(data);
+          if (data.aiAdvice) {
+            setAdvice(data.aiAdvice);
+          }
         } else {
-          // If log doesn't exist for today, it starts at 0 naturally
           setDailyLog(null);
+          setAdvice('');
         }
       }, (error) => {
         handleFirestoreError(error, OperationType.GET, `users/${user.uid}/dailyLogs/${today}`);
@@ -35,15 +40,107 @@ export const Dashboard: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
+    const updateAdvice = async () => {
+      if (!user || !dailyLog || !profile?.macroGoals) return;
+
+      const macrosChanged = !dailyLog.adviceMacros || 
+        dailyLog.macros.protein !== dailyLog.adviceMacros.protein ||
+        dailyLog.macros.carbs !== dailyLog.adviceMacros.carbs ||
+        dailyLog.macros.fats !== dailyLog.adviceMacros.fats;
+
+      if (macrosChanged || !dailyLog.aiAdvice) {
+        setGeneratingAdvice(true);
+        try {
+          const newAdvice = await getVibeAdvice(dailyLog.macros, profile.macroGoals, profile.bodyMetrics);
+          if (newAdvice) {
+            const today = getLocalDateString();
+            const logRef = doc(db, `users/${user.uid}/dailyLogs`, today);
+            await updateDoc(logRef, {
+              aiAdvice: newAdvice,
+              aiAdviceUpdatedAt: Date.now(),
+              adviceMacros: dailyLog.macros
+            });
+            setAdvice(newAdvice);
+          }
+        } catch (error) {
+          console.error("Error generating advice:", error);
+        } finally {
+          setGeneratingAdvice(false);
+        }
+      }
+    };
+
     if (dailyLog && profile?.macroGoals) {
-      getVibeAdvice(dailyLog.macros, profile.macroGoals, profile.bodyMetrics).then(setAdvice);
-    } else {
+      updateAdvice();
+    } else if (!dailyLog && profile?.macroGoals) {
       setAdvice('¡Sube tu plan nutricional para recibir consejos personalizados!');
     }
-  }, [dailyLog, profile]);
+  }, [dailyLog?.macros, profile?.macroGoals, profile?.bodyMetrics, user]);
 
   const macros = dailyLog?.macros || { protein: 0, carbs: 0, fats: 0, calories: 0 };
   const goals = profile?.macroGoals || { protein: 160, carbs: 210, fats: 65, calories: 2000 };
+
+  const dynamicGoals = useMemo(() => {
+    const list = [];
+    
+    // Protein Goal
+    if (macros.protein < goals.protein * 0.5) {
+      list.push({
+        id: 'protein',
+        title: 'Prioridad Proteica',
+        desc: `Te faltan ${formatNum(goals.protein - macros.protein)}g de proteína. Prioriza fuentes magras.`,
+        icon: <Check size={20} />,
+        color: 'primary'
+      });
+    }
+
+    // Hydration Goal
+    if ((dailyLog?.waterIntake || 0) < 2000) {
+      list.push({
+        id: 'water',
+        title: 'Hidratación Crítica',
+        desc: 'Aumenta tu consumo de agua. Tu cuerpo necesita hidratación para procesar los nutrientes.',
+        icon: <Droplets size={20} />,
+        color: 'secondary'
+      });
+    }
+
+    // Body Composition Goals
+    if (profile?.bodyMetrics) {
+      const { bodyFat, muscleMass, weight } = profile.bodyMetrics;
+      if (bodyFat && bodyFat > 22) {
+        list.push({
+          id: 'fat-loss',
+          title: 'Enfoque Metabólico',
+          desc: 'Tu porcentaje de grasa sugiere un enfoque en déficit controlado y cardio ligero.',
+          icon: <Leaf size={20} />,
+          color: 'tertiary'
+        });
+      }
+      if (muscleMass && muscleMass < weight * 0.4) {
+        list.push({
+          id: 'muscle',
+          title: 'Estímulo Hipertrófico',
+          desc: 'Tu masa muscular puede mejorar. Asegura entrenamientos de fuerza intensos.',
+          icon: <Timer size={20} />,
+          color: 'secondary'
+        });
+      }
+    }
+
+    // Default if empty
+    if (list.length === 0) {
+      list.push({
+        id: 'default',
+        title: 'Mantén el Ritmo',
+        desc: 'Vas por buen camino. Sigue cumpliendo con tus macros y entrenamiento.',
+        icon: <Sparkles size={20} />,
+        color: 'primary'
+      });
+    }
+
+    return list.slice(0, 3);
+  }, [macros, goals, dailyLog?.waterIntake, profile?.bodyMetrics]);
 
   const remaining = {
     protein: Math.max(0, goals.protein - macros.protein),
@@ -171,11 +268,18 @@ export const Dashboard: React.FC = () => {
       <section className="bg-surface-container-high rounded-xl p-6 border border-primary/10 relative overflow-hidden">
         <div className="flex items-start gap-4 relative z-10">
           <div className="bg-primary/20 p-2 rounded-lg text-primary">
-            <Sparkles size={20} />
+            <Sparkles size={20} className={generatingAdvice ? "animate-pulse" : ""} />
           </div>
-          <p className="text-on-surface leading-relaxed font-medium italic">
-            "{advice}"
-          </p>
+          {generatingAdvice ? (
+            <div className="flex-1 space-y-2">
+              <div className="h-4 bg-surface-container-highest rounded animate-pulse w-3/4"></div>
+              <div className="h-4 bg-surface-container-highest rounded animate-pulse w-1/2"></div>
+            </div>
+          ) : (
+            <p className="text-on-surface leading-relaxed font-medium italic">
+              "{advice || 'Analizando tu vibra...'}"
+            </p>
+          )}
         </div>
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl -z-0"></div>
       </section>
@@ -265,36 +369,20 @@ export const Dashboard: React.FC = () => {
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-headline font-bold text-xl">Objetivos del Día</h3>
-          <span className="text-on-surface-variant text-xs">Por IA PureVibe</span>
+          <span className="text-on-surface-variant text-xs">Personalizados</span>
         </div>
         <div className="space-y-3">
-          <div className="flex items-center gap-4 bg-surface-container p-4 rounded-xl group hover:bg-surface-container-high transition-all">
-            <div className="w-10 h-10 rounded-full border-2 border-primary flex items-center justify-center text-primary">
-              <Check size={20} />
+          {dynamicGoals.map((goal) => (
+            <div key={goal.id} className="flex items-center gap-4 bg-surface-container p-4 rounded-xl group hover:bg-surface-container-high transition-all">
+              <div className={`w-10 h-10 rounded-full border-2 border-${goal.color} flex items-center justify-center text-${goal.color}`}>
+                {goal.icon}
+              </div>
+              <div className="flex-1">
+                <p className="font-bold">{goal.title}</p>
+                <p className="text-xs text-on-surface-variant">{goal.desc}</p>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="font-bold">Prioridad Proteica</p>
-              <p className="text-xs text-on-surface-variant">Consumir 40g de proteína antes de las 11:00 AM</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 bg-surface-container p-4 rounded-xl group hover:bg-surface-container-high transition-all">
-            <div className="w-10 h-10 rounded-full border-2 border-outline-variant flex items-center justify-center text-outline-variant">
-              <Droplets size={20} />
-            </div>
-            <div className="flex-1">
-              <p className="font-bold">Hidratación Hipertónica</p>
-              <p className="text-xs text-on-surface-variant">Añadir electrolitos a tu botella de entrenamiento</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 bg-surface-container p-4 rounded-xl group hover:bg-surface-container-high transition-all opacity-60">
-            <div className="w-10 h-10 rounded-full border-2 border-outline-variant flex items-center justify-center text-outline-variant">
-              <Timer size={20} />
-            </div>
-            <div className="flex-1">
-              <p className="font-bold">Ayuno Intermitente</p>
-              <p className="text-xs text-on-surface-variant">Ventana de alimentación finaliza a las 8:00 PM</p>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
     </div>

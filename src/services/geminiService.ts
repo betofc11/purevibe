@@ -6,8 +6,9 @@ export const analyzeNutritionPlan = async (base64Data: string, mimeType: string)
   const prompt = `
     Analiza este plan nutricional o imagen de comida. 
     Extrae los macronutrientes (proteínas, carbohidratos, grasas) y las calorías totales.
-    Si es un plan nutricional, extrae los objetivos diarios.
-    Si es una foto de comida, identifica los ingredientes y estima los macros.
+    Si es un plan nutricional, extrae los objetivos diarios y agrupa las comidas por tipo (ej. Desayuno, Almuerzo, Cena, Snack).
+    Para cada tipo de comida, extrae las diferentes opciones disponibles.
+    Para cada opción, dale un título descriptivo, lista los ingredientes con sus cantidades y unidades, y calcula sus macronutrientes (calorías, proteínas, carbohidratos, grasas).
     Responde en formato JSON.
   `;
 
@@ -31,11 +32,49 @@ export const analyzeNutritionPlan = async (base64Data: string, mimeType: string)
           protein: { type: Type.NUMBER },
           carbs: { type: Type.NUMBER },
           fats: { type: Type.NUMBER },
-          ingredients: { 
-            type: Type.ARRAY, 
-            items: { type: Type.STRING } 
-          },
-          advice: { type: Type.STRING }
+          advice: { type: Type.STRING },
+          meals: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                type: { type: Type.STRING, description: "Ej. Desayuno, Almuerzo, Cena" },
+                options: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      title: { type: Type.STRING, description: "Título de la opción, ej. Avena con frutas" },
+                      macros: {
+                        type: Type.OBJECT,
+                        properties: {
+                          calories: { type: Type.NUMBER },
+                          protein: { type: Type.NUMBER },
+                          carbs: { type: Type.NUMBER },
+                          fats: { type: Type.NUMBER }
+                        },
+                        required: ["calories", "protein", "carbs", "fats"]
+                      },
+                      ingredients: {
+                        type: Type.ARRAY,
+                        items: {
+                          type: Type.OBJECT,
+                          properties: {
+                            name: { type: Type.STRING },
+                            quantity: { type: Type.NUMBER },
+                            unit: { type: Type.STRING }
+                          },
+                          required: ["name", "quantity", "unit"]
+                        }
+                      }
+                    },
+                    required: ["title", "ingredients"]
+                  }
+                }
+              },
+              required: ["type", "options"]
+            }
+          }
         },
         required: ["name", "calories", "protein", "carbs", "fats"]
       }
@@ -47,7 +86,7 @@ export const analyzeNutritionPlan = async (base64Data: string, mimeType: string)
 
 export const analyzeFoodImage = async (base64Data: string, mimeType: string) => {
   const prompt = `
-    Analiza esta imagen de comida. Identifica el plato y los ingredientes visibles con una cantidad aproximada.
+    Analiza esta imagen de comida. Identifica el plato, los ingredientes visibles con una cantidad aproximada, y calcula los macronutrientes totales (calorías, proteínas, carbohidratos, grasas).
     Responde en formato JSON.
   `;
 
@@ -67,6 +106,16 @@ export const analyzeFoodImage = async (base64Data: string, mimeType: string) => 
         type: Type.OBJECT,
         properties: {
           name: { type: Type.STRING },
+          macros: {
+            type: Type.OBJECT,
+            properties: {
+              calories: { type: Type.NUMBER },
+              protein: { type: Type.NUMBER },
+              carbs: { type: Type.NUMBER },
+              fats: { type: Type.NUMBER }
+            },
+            required: ["calories", "protein", "carbs", "fats"]
+          },
           ingredients: { 
             type: Type.ARRAY, 
             items: { 
@@ -80,7 +129,7 @@ export const analyzeFoodImage = async (base64Data: string, mimeType: string) => 
             } 
           }
         },
-        required: ["name", "ingredients"]
+        required: ["name", "ingredients", "macros"]
       }
     }
   });

@@ -39,7 +39,36 @@
             "carbs": { "type": "number" },
             "fats": { "type": "number" },
             "advice": { "type": "string" },
-            "extractedAt": { "type": "number" }
+            "extractedAt": { "type": "number" },
+            "meals": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string" },
+                  "options": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": { "type": "string" },
+                        "ingredients": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": { "type": "string" },
+                              "quantity": { "type": "number" },
+                              "unit": { "type": "string" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       },
@@ -66,7 +95,18 @@
           "type": "array",
           "items": { "$ref": "Meal" }
         },
-        "waterIntake": { "type": "number" }
+        "waterIntake": { "type": "number" },
+        "aiAdvice": { "type": "string" },
+        "aiAdviceUpdatedAt": { "type": "number" },
+        "adviceMacros": {
+          "type": "object",
+          "properties": {
+            "protein": { "type": "number" },
+            "carbs": { "type": "number" },
+            "fats": { "type": "number" },
+            "calories": { "type": "number" }
+          }
+        }
       },
       "required": ["id", "userId", "date", "macros"]
     },
