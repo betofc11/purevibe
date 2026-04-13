@@ -14,7 +14,11 @@ interface Ingredient {
   unit: string;
 }
 
-export const FoodDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+export const FoodDialog: React.FC<{ 
+  isOpen: boolean; 
+  onClose: () => void;
+  initialData?: any;
+}> = ({ isOpen, onClose, initialData }) => {
   const { user } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -31,6 +35,22 @@ export const FoodDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
 
   useEffect(() => {
     if (user && isOpen) {
+      if (initialData) {
+        setFoodName(initialData.name || '');
+        setIngredients(initialData.ingredients || []);
+        setMacros(initialData.macros || null);
+        setStep('edit');
+        setPreview(initialData.imageUrl || null);
+        setSaveAsFavorite(true);
+      } else {
+        setStep('upload');
+        setFoodName('');
+        setIngredients([]);
+        setMacros(null);
+        setPreview(null);
+        setFile(null);
+      }
+
       const fetchSavedMeals = async () => {
         try {
           const q = query(collection(db, `users/${user.uid}/savedMeals`));
@@ -117,7 +137,7 @@ export const FoodDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
       
       // 2. Save to savedMeals if requested
       if (saveAsFavorite && foodName.trim()) {
-        const mealId = Date.now().toString();
+        const mealId = initialData?.id || Date.now().toString();
         await setDoc(doc(db, `users/${user.uid}/savedMeals`, mealId), {
           id: mealId,
           userId: user.uid,

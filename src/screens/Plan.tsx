@@ -8,6 +8,8 @@ import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { formatNum, getLocalDateString } from '../lib/utils';
 import { DailyLog, Meal } from '../types';
+import { SavedMealsSection } from '../components/SavedMealsSection';
+import { FoodDialog } from '../components/FoodDialog';
 
 export const Plan: React.FC = () => {
   const { user, profile } = useAuth();
@@ -17,6 +19,8 @@ export const Plan: React.FC = () => {
   const [expandedMeal, setExpandedMeal] = useState<string | null>(null);
   const [expandedOptions, setExpandedOptions] = useState<Record<string, boolean>>({});
   const [loggingMeal, setLoggingMeal] = useState<string | null>(null);
+  const [editingMeal, setEditingMeal] = useState<any | null>(null);
+  const [isFoodDialogOpen, setIsFoodDialogOpen] = useState(false);
 
   const handleRegisterMeal = async (categoryType: string, option: any) => {
     if (!user) return;
@@ -306,6 +310,23 @@ export const Plan: React.FC = () => {
           )}
         </motion.div>
       )}
+
+      <SavedMealsSection 
+        onRegister={(option) => handleRegisterMeal('Comida Guardada', option)} 
+        onEdit={(meal) => {
+          setEditingMeal(meal);
+          setIsFoodDialogOpen(true);
+        }}
+      />
+
+      <FoodDialog 
+        isOpen={isFoodDialogOpen} 
+        onClose={() => {
+          setIsFoodDialogOpen(false);
+          setEditingMeal(null);
+        }}
+        initialData={editingMeal}
+      />
 
       {!planData && (
         <section className="space-y-4">

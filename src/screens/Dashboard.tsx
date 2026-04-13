@@ -8,6 +8,7 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { DailyLog, Meal } from '../types';
 import { formatNum, getLocalDateString } from '../lib/utils';
 import { Link } from 'react-router-dom';
+import { MealList } from '../components/MealList';
 
 export const Dashboard: React.FC = () => {
   const { profile, user } = useAuth();
@@ -322,47 +323,7 @@ export const Dashboard: React.FC = () => {
       {/* Meals List */}
       <section className="space-y-4">
         <h3 className="font-headline font-bold text-xl">Comidas de Hoy</h3>
-        {dailyLog?.meals && dailyLog.meals.length > 0 ? (
-          <div className="space-y-3">
-            {dailyLog.meals.map((meal) => (
-              <div key={meal.id} className="bg-surface-container p-4 rounded-xl flex items-center gap-4 border border-outline-variant/10 group">
-                {meal.imageUrl ? (
-                  <img src={meal.imageUrl} alt={meal.name} className="w-16 h-16 rounded-lg object-cover" referrerPolicy="no-referrer" />
-                ) : (
-                  <div className="w-16 h-16 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
-                    <Utensils size={24} />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold truncate">{meal.name}</p>
-                  <p className="text-xs text-on-surface-variant">
-                    {new Date(meal.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-                <div className="text-right flex items-center gap-3">
-                  <div>
-                    <p className="font-bold text-primary">{formatNum(meal.macros.calories)} kcal</p>
-                    <p className="text-[10px] text-on-surface-variant">
-                      P: {formatNum(meal.macros.protein)}g | C: {formatNum(meal.macros.carbs)}g | G: {formatNum(meal.macros.fats)}g
-                    </p>
-                  </div>
-                  <button 
-                    onClick={() => handleDeleteMeal(meal)}
-                    className="p-2 text-on-surface-variant hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="bg-surface-container/50 border border-dashed border-outline-variant/30 rounded-xl p-8 text-center">
-            <Utensils className="mx-auto text-on-surface-variant/30 mb-3" size={32} />
-            <p className="text-on-surface-variant text-sm">Aún no has registrado comidas hoy.</p>
-            <p className="text-[10px] text-on-surface-variant/60 mt-1 uppercase tracking-widest font-bold">Toca el botón + para empezar</p>
-          </div>
-        )}
+        <MealList meals={dailyLog?.meals || []} onDeleteMeal={handleDeleteMeal} />
       </section>
 
       {/* Daily Goals */}
