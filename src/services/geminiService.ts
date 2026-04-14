@@ -198,7 +198,7 @@ export const analyzeBodyComposition = async (base64Data: string, mimeType: strin
   return JSON.parse(response.text || '{}');
 };
 
-export const getVibeAdvice = async (dailyMacros: any, goals: any, bodyMetrics?: any) => {
+export const getPiveAdvice = async (dailyMacros: any, goals: any, bodyMetrics?: any) => {
   const remaining = {
     protein: Math.max(0, goals.protein - dailyMacros.protein),
     carbs: Math.max(0, goals.carbs - dailyMacros.carbs),
@@ -212,7 +212,7 @@ export const getVibeAdvice = async (dailyMacros: any, goals: any, bodyMetrics?: 
     Macros restantes: ${JSON.stringify(remaining)}
     Métricas corporales: ${JSON.stringify(bodyMetrics || 'No disponibles')}
     
-    Proporciona un consejo corto (máximo 2 frases) y motivador al estilo "PureVibe" (fresco, directo, energético, un poco rebelde pero enfocado).
+    Proporciona un consejo corto (máximo 2 frases) y motivador al estilo "Pive" (fresco, directo, energético, un poco rebelde pero enfocado).
     Dile exactamente qué le falta consumir para llegar a su meta de hoy de forma natural.
     IMPORTANTE: No menciones nunca métricas de composición corporal como porcentaje de grasa, masa muscular o peso en el consejo. Enfócate únicamente en la nutrición y la energía.
   `;

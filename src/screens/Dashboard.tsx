@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { useAuth } from '../hooks/useAuth';
-import { getVibeAdvice } from '../services/geminiService';
+import { getPiveAdvice } from '../services/geminiService';
 import { Utensils, Wheat, Droplets, Leaf, Check, Timer, Sparkles, Trash2, ArrowRight } from 'lucide-react';
 import { collection, query, where, onSnapshot, limit, doc, updateDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
@@ -52,7 +52,7 @@ export const Dashboard: React.FC = () => {
       if (macrosChanged || !dailyLog.aiAdvice) {
         setGeneratingAdvice(true);
         try {
-          const newAdvice = await getVibeAdvice(dailyLog.macros, profile.macroGoals, profile.bodyMetrics);
+          const newAdvice = await getPiveAdvice(dailyLog.macros, profile.macroGoals, profile.bodyMetrics);
           if (newAdvice) {
             const today = getLocalDateString();
             const logRef = doc(db, `users/${user.uid}/dailyLogs`, today);
@@ -150,7 +150,7 @@ export const Dashboard: React.FC = () => {
     calories: Math.max(0, goals.calories - macros.calories)
   };
 
-  const firstName = profile?.displayName?.split(' ')[0] || 'Viber';
+  const firstName = profile?.displayName?.split(' ')[0] || 'Piver';
   const needsOnboarding = !profile?.bodyMetrics?.weight || !profile?.macroGoals;
 
   const ratio = goals.calories > 0 ? macros.calories / goals.calories : 0;
@@ -229,7 +229,7 @@ export const Dashboard: React.FC = () => {
         </motion.div>
       )}
 
-      {/* Vibe Graphic (Simplified Ring) */}
+      {/* Pive Graphic (Simplified Ring) */}
       <section className="flex flex-col items-center py-4">
         <div className="relative w-64 h-64 flex items-center justify-center">
           <svg className="absolute inset-0 w-full h-full rotate-[-90deg]" viewBox="0 0 100 100">

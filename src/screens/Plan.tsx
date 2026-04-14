@@ -151,7 +151,7 @@ export const Plan: React.FC = () => {
           <h1 className="font-headline text-4xl font-extrabold tracking-tight leading-tight">
             Tu <span className="text-primary">Plan</span>
           </h1>
-          <p className="text-on-surface-variant mt-2 font-medium">Nutrición impulsada por PureAI.</p>
+          <p className="text-on-surface-variant mt-2 font-medium">Nutrición impulsada por Pive AI.</p>
         </div>
         {planData && (
           <div {...getRootProps()} className="cursor-pointer">
@@ -358,7 +358,7 @@ export const Plan: React.FC = () => {
             </li>
             <li className="flex gap-3">
               <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center flex-shrink-0 text-[10px] font-bold">2</div>
-              <p>PureAI analizará los ingredientes, extraerá los macronutrientes y agrupará tus comidas.</p>
+              <p>Pive AI analizará los ingredientes, extraerá los macronutrientes y agrupará tus comidas.</p>
             </li>
             <li className="flex gap-3">
               <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center flex-shrink-0 text-[10px] font-bold">3</div>

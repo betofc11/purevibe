@@ -17,7 +17,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const [activeDialog, setActiveDialog] = useState<'food' | 'water' | 'body' | 'record' | null>(null);
 
   const navItems = [
-    { name: 'Vibe', path: '/', icon: Sparkles },
+    { name: 'Pive', path: '/', icon: Sparkles },
     { name: 'Plan', path: '/plan', icon: ClipboardList },
     { name: 'Stats', path: '/stats', icon: BarChart3 },
     { name: 'Coach', path: '/coach', icon: Dumbbell },
@@ -54,7 +54,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               <path d="M40 60C48 55 58 55 65 60" stroke="url(#headerLogoGradient)" strokeWidth="2" strokeLinecap="round" opacity="0.4" />
             </svg>
           </div>
-          <span className="text-primary font-headline font-extrabold text-2xl tracking-tight">PureVibe</span>
+          <span className="text-primary font-headline font-extrabold text-2xl tracking-tight">Pive</span>
         </div>
         <Link to="/profile" className="relative group">
           <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/20 bg-surface-container group-hover:border-primary transition-all shadow-lg">

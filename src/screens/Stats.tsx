@@ -124,7 +124,7 @@ export const Stats: React.FC = () => {
           </h1>
           <div className="bg-surface-container rounded-full px-4 py-2 flex items-center gap-2">
             <Zap size={14} className="text-secondary fill-secondary" />
-            <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">PureVibe Elite</span>
+            <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Pive Elite</span>
           </div>
         </div>
         <p className="text-on-surface-variant text-lg max-w-md">Tu evolución capturada en datos. Supera tus límites.</p>

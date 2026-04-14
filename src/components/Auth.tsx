@@ -63,7 +63,7 @@ export const Auth: React.FC = () => {
         className="w-full max-w-md space-y-8"
       >
         <div className="text-center">
-          <h1 className="text-primary font-headline font-black text-5xl tracking-tighter">PureVibe</h1>
+          <h1 className="text-primary font-headline font-black text-5xl tracking-tighter">Pive</h1>
           <p className="text-on-surface-variant mt-2">Tu vibra, tu fuerza, tu plan.</p>
         </div>
 

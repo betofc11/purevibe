@@ -24,7 +24,7 @@ export const Coach: React.FC = () => {
           Escáner de <span className="text-primary">Rutinas</span>
         </h1>
         <p className="text-on-surface-variant text-lg">
-          Pronto podrás subir cualquier rutina de gimnasio (foto, PDF o documento) y PureVibe la organizará por ti con imágenes y seguimiento inteligente.
+          Pronto podrás subir cualquier rutina de gimnasio (foto, PDF o documento) y Pive la organizará por ti con imágenes y seguimiento inteligente.
         </p>
       </div>
 
