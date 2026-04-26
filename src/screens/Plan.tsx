@@ -11,6 +11,8 @@ import { DailyLog, Meal } from '../types';
 import { SavedMealsSection } from '../components/SavedMealsSection';
 import { FoodDialog } from '../components/FoodDialog';
 
+import mammoth from 'mammoth';
+
 export const Plan: React.FC = () => {
   const { user, profile } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -92,38 +94,55 @@ export const Plan: React.FC = () => {
     setResult(null);
 
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = (reader.result as string).split(',')[1];
-        const analysis = await analyzeNutritionPlan(base64, file.type);
-        setResult(analysis);
+      let analysisInput: { base64Data?: string; mimeType?: string; text?: string } = {};
 
-        if (user) {
-          // Save nutritional plan and goals to profile
-          if (analysis.protein && analysis.carbs && analysis.fats) {
-            await setDoc(doc(db, 'users', user.uid), {
-              macroGoals: {
-                protein: analysis.protein,
-                carbs: analysis.carbs,
-                fats: analysis.fats,
-                calories: analysis.calories
-              },
-              nutritionalPlan: {
-                name: analysis.name,
-                calories: analysis.calories,
-                protein: analysis.protein,
-                carbs: analysis.carbs,
-                fats: analysis.fats,
-                advice: analysis.advice || '',
-                meals: analysis.meals || [],
-                extractedAt: Date.now()
-              }
-            }, { merge: true });
-          }
+      if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        analysisInput.text = result.value;
+      } else if (file.type === 'text/plain') {
+        analysisInput.text = await file.text();
+      } else if (file.type === 'application/pdf' || file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve) => {
+          reader.onload = () => resolve((reader.result as string).split(',')[1]);
+          reader.readAsDataURL(file);
+        });
+        analysisInput.base64Data = await base64Promise;
+        analysisInput.mimeType = file.type;
+      } else {
+        // For other types, try to read as text if it seems like a document
+        // or just warn the user. many nutritionist reports are csv/xlsx but let's stick to text for now
+        analysisInput.text = await file.text();
+      }
+
+      const analysis = await analyzeNutritionPlan(analysisInput);
+      setResult(analysis);
+
+      if (user) {
+        // Save nutritional plan and goals to profile
+        if (analysis.protein && analysis.carbs && analysis.fats) {
+          await setDoc(doc(db, 'users', user.uid), {
+            macroGoals: {
+              protein: analysis.protein,
+              carbs: analysis.carbs,
+              fats: analysis.fats,
+              calories: analysis.calories
+            },
+            nutritionalPlan: {
+              name: analysis.name,
+              calories: analysis.calories,
+              protein: analysis.protein,
+              carbs: analysis.carbs,
+              fats: analysis.fats,
+              advice: analysis.advice || '',
+              meals: analysis.meals || [],
+              extractedAt: Date.now()
+            }
+          }, { merge: true });
         }
-        setLoading(false);
-      };
-      reader.readAsDataURL(file);
+      }
+      setLoading(false);
     } catch (err: any) {
       console.error(err);
       setError('Error al analizar el archivo. Intenta de nuevo.');
@@ -134,9 +153,13 @@ export const Plan: React.FC = () => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
     onDrop,
     accept: {
-      'image/jpeg': ['.jpeg', '.jpg'],
-      'image/png': ['.png'],
-      'application/pdf': ['.pdf']
+      'image/*': [],
+      'application/pdf': [],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'text/plain': ['.txt'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls']
     },
     multiple: false
   } as any);
@@ -172,8 +195,8 @@ export const Plan: React.FC = () => {
               {loading ? <Loader2 className="animate-spin" size={32} /> : <Upload size={32} />}
             </div>
             <div>
-              <p className="font-headline text-lg font-bold">Sube tu PDF o Foto</p>
-              <p className="text-on-surface-variant text-sm mt-1">Nuestra IA extraerá tus macros y comidas automáticamente</p>
+              <p className="font-headline text-lg font-bold">Sube tu Plan o Foto</p>
+              <p className="text-on-surface-variant text-sm mt-1">Soporta PDF, Word, Excel, Texto o Fotos</p>
             </div>
             <button className="bg-primary text-on-primary font-bold px-8 py-3 rounded-full hover:shadow-[0_0_20px_rgba(166,140,255,0.4)] transition-all">
               Explorar Archivos
@@ -358,7 +381,7 @@ export const Plan: React.FC = () => {
             </li>
             <li className="flex gap-3">
               <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center flex-shrink-0 text-[10px] font-bold">2</div>
-              <p>Pive AI analizará los ingredientes, extraerá los macronutrientes y agrupará tus comidas.</p>
+              <p>Pive AI analizará los ingredientes, extraerá los macronutrientes y agrupará tus comidas (funciona con PDF, Word, texto o fotos).</p>
             </li>
             <li className="flex gap-3">
               <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center flex-shrink-0 text-[10px] font-bold">3</div>

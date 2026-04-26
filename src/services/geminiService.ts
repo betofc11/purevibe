@@ -2,9 +2,9 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
-export const analyzeNutritionPlan = async (base64Data: string, mimeType: string) => {
+export const analyzeNutritionPlan = async (input: { base64Data?: string; mimeType?: string; text?: string }) => {
   const prompt = `
-    Analiza este plan nutricional o imagen de comida. 
+    Analiza este plan nutricional (ya sea una imagen, un PDF o texto extraído). 
     Extrae los macronutrientes (proteínas, carbohidratos, grasas) y las calorías totales.
     Si es un plan nutricional, extrae los objetivos diarios y agrupa las comidas por tipo (ej. Desayuno, Almuerzo, Cena, Snack).
     Para cada tipo de comida, extrae las diferentes opciones disponibles.
@@ -12,16 +12,17 @@ export const analyzeNutritionPlan = async (base64Data: string, mimeType: string)
     Responde en formato JSON.
   `;
 
+  const parts: any[] = [{ text: prompt }];
+  
+  if (input.text) {
+    parts.push({ text: `Texto del plan: ${input.text}` });
+  } else if (input.base64Data && input.mimeType) {
+    parts.push({ inlineData: { data: input.base64Data, mimeType: input.mimeType } });
+  }
+
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: [
-      {
-        parts: [
-          { text: prompt },
-          { inlineData: { data: base64Data, mimeType } }
-        ]
-      }
-    ],
+    contents: [{ parts }],
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -165,23 +166,24 @@ export const calculateMacrosFromIngredients = async (ingredients: any[]) => {
   return JSON.parse(response.text || '{}');
 };
 
-export const analyzeBodyComposition = async (base64Data: string, mimeType: string) => {
+export const analyzeBodyComposition = async (input: { base64Data?: string; mimeType?: string; text?: string }) => {
   const prompt = `
-    Analiza este documento o imagen de composición corporal.
+    Analiza este documento, imagen o texto de composición corporal.
     Extrae el peso, porcentaje de grasa corporal y masa muscular.
     Responde en formato JSON.
   `;
 
+  const parts: any[] = [{ text: prompt }];
+
+  if (input.text) {
+    parts.push({ text: `Texto del reporte: ${input.text}` });
+  } else if (input.base64Data && input.mimeType) {
+    parts.push({ inlineData: { data: input.base64Data, mimeType: input.mimeType } });
+  }
+
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: [
-      {
-        parts: [
-          { text: prompt },
-          { inlineData: { data: base64Data, mimeType } }
-        ]
-      }
-    ],
+    contents: [{ parts }],
     config: {
       responseMimeType: "application/json",
       responseSchema: {

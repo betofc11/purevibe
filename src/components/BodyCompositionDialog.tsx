@@ -7,6 +7,8 @@ import { useAuth } from '../hooks/useAuth';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, updateDoc, collection, addDoc } from 'firebase/firestore';
 
+import mammoth from 'mammoth';
+
 export const BodyCompositionDialog: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const { user, profile } = useAuth();
   const [file, setFile] = useState<File | null>(null);
@@ -32,7 +34,15 @@ export const BodyCompositionDialog: React.FC<{ isOpen: boolean; onClose: () => v
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { 'image/*': [], 'application/pdf': [] },
+    accept: { 
+      'image/*': [], 
+      'application/pdf': [],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'text/plain': ['.txt'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls']
+    },
     maxFiles: 1,
     multiple: false,
     onDragEnter: undefined,
@@ -41,12 +51,31 @@ export const BodyCompositionDialog: React.FC<{ isOpen: boolean; onClose: () => v
   } as any);
 
   const handleAnalyze = async () => {
-    if (!preview) return;
+    if (!file) return;
     setLoading(true);
     try {
-      const base64Data = preview.split(',')[1];
-      const mimeType = file?.type || 'image/jpeg';
-      const result = await analyzeBodyComposition(base64Data, mimeType);
+      let analysisInput: { base64Data?: string; mimeType?: string; text?: string } = {};
+
+      if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        analysisInput.text = result.value;
+      } else if (file.type === 'text/plain') {
+        analysisInput.text = await file.text();
+      } else if (file.type === 'application/pdf' || file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve) => {
+          reader.onload = () => resolve((reader.result as string).split(',')[1]);
+          reader.readAsDataURL(file);
+        });
+        analysisInput.base64Data = await base64Promise;
+        analysisInput.mimeType = file.type;
+      } else {
+        // Fallback to text for excel/other doc types
+        analysisInput.text = await file.text();
+      }
+
+      const result = await analyzeBodyComposition(analysisInput);
       
       setWeight(result.weight?.toString() || profile?.bodyMetrics?.weight?.toString() || '');
       setBodyFat(result.bodyFat?.toString() || profile?.bodyMetrics?.bodyFat?.toString() || '');
@@ -128,7 +157,7 @@ export const BodyCompositionDialog: React.FC<{ isOpen: boolean; onClose: () => v
                 </div>
                 <div>
                   <p className="font-medium">Sube un archivo o foto</p>
-                  <p className="text-sm text-on-surface-variant mt-1">Formatos: PDF, JPG, PNG</p>
+                  <p className="text-sm text-on-surface-variant mt-1">Formatos: PDF, Word, Excel, Texto, Fotos</p>
                 </div>
               </div>
             )}
